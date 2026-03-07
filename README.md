@@ -71,6 +71,29 @@ Yes, you can!
 To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
 
 Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+
+---
+
+# Sparky-Mcsparkface Energy Dashboard
+
+Production-ready energy dashboard with ML pipeline and AI-powered chatbot assistant for analyzing smart meter energy consumption data.
+
+## 🌟 Features
+
+- **📊 Real-time Energy Dashboard**: Interactive visualization of energy consumption patterns
+- **🤖 AI Energy Assistant**: RAG-powered chatbot for personalized energy advice
+- **📈 Smart Meter Analytics**: Analyze consumption patterns and trends
+- **💡 Energy Saving Recommendations**: AI-driven suggestions based on your usage
+- **📱 Responsive Interface**: Works on desktop and mobile devices
+
+## 🏗️ Architecture
+
+This project consists of three main components:
+
+1. **Frontend** (React + TypeScript): Dashboard UI and chat interface
+2. **Backend** (Node.js): API for serving energy consumption data
+3. **Chatbot** (Python + FastAPI): RAG-powered AI assistant
+
 # Energy ML Pipeline
 
 Production-ready Python project skeleton for analyzing smart meter energy consumption data. The codebase is modular, dataset-agnostic, and designed so new datasets can be integrated with minimal changes.
@@ -101,7 +124,85 @@ project_root/
 └── tests/
 ```
 
-## Quick Start
+## 🚀 Quick Start
+
+### Prerequisites
+
+- Node.js 16+ and npm
+- Python 3.8+
+- OpenAI API key
+- Pinecone API key
+
+### Installation
+
+1. **Clone and install dependencies:**
+
+```bash
+# Install root dependencies
+npm install
+
+# Install frontend dependencies
+cd frontend && npm install && cd ..
+
+# Install backend dependencies
+cd backend && npm install && cd ..
+```
+
+2. **Set up the AI Chatbot:**
+
+```bash
+cd chatbot
+
+# Create virtual environment
+python -m venv .venv
+source .venv/bin/activate  # On macOS/Linux
+# .venv\Scripts\activate   # On Windows
+
+# Install dependencies
+pip install -r requirements.txt
+
+# Create .env file
+cp .env.example .env
+# Edit .env and add your API keys:
+# - OPENAI_API_KEY
+# - PINECONE_API_KEY
+```
+
+3. **Ingest knowledge base (first time only):**
+
+```bash
+python -c "from rag_engine import ingest_directory; chunks, files = ingest_directory('knowledge_base'); print(f'Ingested {len(files)} files')"
+cd ..
+```
+
+4. **Start all services:**
+
+```bash
+# From project root
+npm run dev
+
+# This starts:
+# - Frontend: http://localhost:5173
+# - Backend: http://localhost:3001
+# - Chatbot: http://localhost:8000
+```
+
+### Using the Dashboard
+
+1. Open http://localhost:5173 in your browser
+2. View your energy consumption data and analytics
+3. Click the chat icon (💬) in the bottom-right to talk to the AI assistant
+4. Ask questions like:
+   - "How can I reduce my energy bill?"
+   - "What are peak hours?"
+   - "Tell me about smart meters"
+
+## 📚 Documentation
+
+- **[Chatbot Setup Guide](chatbot/README.md)** - Detailed chatbot configuration and API docs
+- **[Energy ML Pipeline](#energy-ml-pipeline)** - Data processing and ML workflows
+
+## Quick Start (ML Pipeline)
 
 1. Install dependencies:
 

@@ -7,6 +7,7 @@ import Recommendations from "@/components/Recommendations";
 import CommunityImpact from "@/components/CommunityImpact";
 import ApplianceUsageForm from "@/components/ApplianceUsageForm";
 import ApplianceUsageDashboard from "@/components/ApplianceUsageDashboard";
+import EnergyAssistant from "@/components/EnergyAssistant";
 
 const Index = () => {
   return (
@@ -43,6 +44,9 @@ const Index = () => {
           SP Energy © 2026 — Helping you use energy smarter.
         </footer>
       </div>
+      
+      {/* AI Energy Assistant Chatbot */}
+      <EnergyAssistant />
     </div>
   );
 };
