@@ -1,22 +1,78 @@
+# =========================
+# Python
+# =========================
 __pycache__/
 *.py[cod]
+*.pyo
+*.pyd
 .pytest_cache/
 .mypy_cache/
+.ruff_cache/
+.ipynb_checkpoints/
+notebooks/.ipynb_checkpoints/
+
+# Virtual environments
 .venv/
 venv/
 env/
+
+# =========================
+# Python model / output artifacts
+# =========================
 models/*.joblib
 outputs/*.png
 outputs/*.csv
-outputs/eda/*.json
-outputs/reports/*.csv
-outputs/reports/*.json
-outputs/anomalies/*.csv
-outputs/anomalies/*.json
-outputs/forecasting/*.csv
-outputs/forecasting/*.json
-data/raw/*
-!data/raw/.gitkeep
-data/processed/*
-!data/processed/.gitkeep
-notebooks/.ipynb_checkpoints/
+
+# =========================
+# Node / Frontend
+# =========================
+node_modules/
+dist/
+dist-ssr/
+coverage/
+.vite/
+*.local
+
+# Package manager logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# Optional lockfile choice
+# Keep the one you use, ignore the others if needed
+# bun.lock
+# bun.lockb
+
+# =========================
+# Environment files
+# =========================
+.env
+.env.*
+!.env.example
+
+# =========================
+# OS / Editor
+# =========================
+.DS_Store
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+*.swp
+
+# VS Code
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+!.vscode/launch.json
+!.vscode/tasks.json
+
+# =========================
+# Misc logs
+# =========================
+logs/
+*.log
