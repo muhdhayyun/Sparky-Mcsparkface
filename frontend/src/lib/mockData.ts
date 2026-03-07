@@ -29,6 +29,16 @@ export const weeklyUsage = [
   { day: "Sun", usage: 17.8, target: 16 },
 ];
 
+export const applianceUsage = [
+    { date: "2026-03-01", hours: "3", applianceName: "Air Conditioner" },
+    { date: "2026-03-02", hours: "1", applianceName: "Washing Machine" },
+    { date: "2026-03-03", hours: "8", applianceName: "Refrigerator" },
+    { date: "2026-03-04", hours: "2", applianceName: "Television" },
+    { date: "2026-03-05", hours: "5", applianceName: "Air Conditioner" },
+    { date: "2026-03-06", hours: "1", applianceName: "Oven" },
+    { date: "2026-03-07", hours: "4", applianceName: "Washing Machine" },
+]
+
 export interface Recommendation {
   id: string;
   title: string;

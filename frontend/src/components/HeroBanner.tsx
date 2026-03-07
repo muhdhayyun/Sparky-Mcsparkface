@@ -14,7 +14,7 @@ const HeroBanner = () => {
           <div className="flex items-center gap-2 mb-2">
             <Zap className="h-6 w-6 text-accent" />
             <span className="text-primary-foreground/80 text-sm font-medium uppercase tracking-wider">
-              GridSmart Energy
+              SP Energy
             </span>
           </div>
           <h1 className="text-2xl md:text-3xl font-bold text-primary-foreground mb-1">

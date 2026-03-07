@@ -5,6 +5,8 @@ import UsageChart from "@/components/UsageChart";
 import WeeklyOverview from "@/components/WeeklyOverview";
 import Recommendations from "@/components/Recommendations";
 import CommunityImpact from "@/components/CommunityImpact";
+import ApplianceUsageForm from "@/components/ApplianceUsageForm";
+import ApplianceUsageDashboard from "@/components/ApplianceUsageDashboard";
 
 const Index = () => {
   return (
@@ -24,12 +26,21 @@ const Index = () => {
             <Recommendations />
           </div>
           <div className="md:col-span-2">
-            <CommunityImpact />
+            <div>
+              <CommunityImpact />
+            </div>
+            <div className="mt-4">
+              <ApplianceUsageForm />
+            </div>
           </div>
         </div>
 
+        <div className="max-w-5xl mx-auto mt-4">
+          <ApplianceUsageDashboard />
+        </div>
+
         <footer className="text-center text-xs text-muted-foreground mt-10 pb-6">
-          GridSmart Energy © 2026 — Helping you use energy smarter.
+          SP Energy © 2026 — Helping you use energy smarter.
         </footer>
       </div>
     </div>
