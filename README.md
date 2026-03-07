@@ -79,8 +79,22 @@ Production-ready Python project skeleton for analyzing smart meter energy consum
 
 ```text
 project_root/
+├── ai_service/              # Python Flask AI service for recommendations
+│   ├── ai_api.py           # Flask REST API
+│   ├── ai_service.py       # Core AI logic (RAG, recommendations)
+│   ├── ai_requirements.txt # Python dependencies
+│   └── .env.example        # API keys template
+├── backend/                # Node.js Express server
+│   ├── server.js
+│   ├── appliances.db
+│   └── package.json
+├── frontend/               # React + Vite + TypeScript
+│   ├── src/
+│   │   ├── components/
+│   │   └── pages/
+│   └── package.json
 ├── data/
-│   ├── processed/
+│   ├── processed/          # 2016 household energy CSVs
 │   └── raw/
 ├── models/
 ├── notebooks/
@@ -100,6 +114,29 @@ project_root/
 │       └── utils.py
 └── tests/
 ```
+
+## Services
+
+### 1. Frontend (React + Vite) - Port 8080
+```bash
+cd frontend
+npm run dev
+```
+
+### 2. Backend (Node.js + Express) - Port 3001
+```bash
+cd backend
+npm start
+```
+
+### 3. AI Service (Python + Flask) - Port 5000
+```bash
+cd ai_service
+source ../.venv/bin/activate
+python ai_api.py
+```
+
+See [ai_service/README.md](ai_service/README.md) for AI service setup.
 
 ## Quick Start
 
@@ -166,4 +203,21 @@ Train a baseline next-interval forecasting model:
 
 ```bash
 python -m energy_ml_pipeline.run_forecasting
+```
+
+
+# how to run the project
+```
+# AI Service (Port 5000)
+cd ai_service
+source ../.venv/bin/activate
+python ai_api.py
+
+# Backend (Port 3001)
+cd backend
+npm start
+
+# Frontend (Port 8080)
+cd frontend
+npm run dev
 ```

@@ -76,3 +76,4 @@ lerna-debug.log*
 # =========================
 logs/
 *.log
+data/processed/1315367_FD1_L3_EDMI_2_D.csv

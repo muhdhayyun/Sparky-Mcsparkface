@@ -3,9 +3,29 @@ const cors = require('cors');
 const fs = require('fs');
 const path = require('path');
 const csv = require('csv-parser');
+const sqlite3 = require('sqlite3').verbose();
 
 const app = express();
 const PORT = 3001;
+
+// Initialize SQLite database
+const DB_PATH = path.join(__dirname, 'appliances.db');
+const db = new sqlite3.Database(DB_PATH);
+
+// Create appliance_usage table
+db.serialize(() => {
+  db.run(`
+    CREATE TABLE IF NOT EXISTS appliance_usage (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      date TEXT NOT NULL,
+      hours INTEGER NOT NULL,
+      appliance_name TEXT NOT NULL,
+      energy_kwh REAL,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+  console.log('✓ Database initialized');
+});
 
 app.use(cors());
 app.use(express.json());
@@ -176,6 +196,40 @@ app.get('/api/weekly-overview', async (req, res) => {
     console.error('Error in /api/weekly-overview:', err);
     res.status(500).json({ error: 'Failed to process weekly overview data' });
   }
+});
+
+// Endpoint 3: POST /api/appliances - Save appliance usage
+app.post('/api/appliances', (req, res) => {
+  const { date, hours, applianceName } = req.body;
+  
+  if (!date || !hours || !applianceName) {
+    return res.status(400).json({ error: 'Missing required fields' });
+  }
+  
+  const stmt = db.prepare('INSERT INTO appliance_usage (date, hours, appliance_name) VALUES (?, ?, ?)');
+  stmt.run(date, parseInt(hours), applianceName, function(err) {
+    if (err) {
+      console.error('Error saving appliance:', err);
+      return res.status(500).json({ error: 'Failed to save appliance data' });
+    }
+    res.json({ 
+      success: true, 
+      id: this.lastID,
+      message: 'Appliance usage saved successfully'
+    });
+  });
+  stmt.finalize();
+});
+
+// Endpoint 4: GET /api/appliances - Get all appliance usage
+app.get('/api/appliances', (req, res) => {
+  db.all('SELECT * FROM appliance_usage ORDER BY date DESC, created_at DESC', (err, rows) => {
+    if (err) {
+      console.error('Error fetching appliances:', err);
+      return res.status(500).json({ error: 'Failed to fetch appliance data' });
+    }
+    res.json(rows);
+  });
 });
 
 app.listen(PORT, () => {
