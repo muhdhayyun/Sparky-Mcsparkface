@@ -1,0 +1,14 @@
+{
+  "name": "energy-backend",
+  "version": "1.0.0",
+  "description": "Backend API for energy consumption data",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "csv-parser": "^3.0.0",
+    "cors": "^2.8.5"
+  }
+}
