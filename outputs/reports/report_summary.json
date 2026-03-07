@@ -1,0 +1,17 @@
+{
+  "overview": {
+    "meter_count": 24,
+    "row_count": 1586044,
+    "date_range": {
+      "start": "2012-11-14 00:00:00",
+      "end": "2017-03-15 00:00:00"
+    }
+  },
+  "generated_files": {
+    "per_meter_summary": "C:\\Users\\Muhd Hayyun\\Desktop\\Apps\\School\\Y2S2\\Hackomania\\outputs\\reports\\per_meter_summary.csv",
+    "daily_usage": "C:\\Users\\Muhd Hayyun\\Desktop\\Apps\\School\\Y2S2\\Hackomania\\outputs\\reports\\daily_usage.csv",
+    "peak_hour_usage": "C:\\Users\\Muhd Hayyun\\Desktop\\Apps\\School\\Y2S2\\Hackomania\\outputs\\reports\\peak_hour_usage.csv",
+    "weekday_usage": "C:\\Users\\Muhd Hayyun\\Desktop\\Apps\\School\\Y2S2\\Hackomania\\outputs\\reports\\weekday_usage.csv",
+    "top_meters": "C:\\Users\\Muhd Hayyun\\Desktop\\Apps\\School\\Y2S2\\Hackomania\\outputs\\reports\\top_meters.csv"
+  }
+}

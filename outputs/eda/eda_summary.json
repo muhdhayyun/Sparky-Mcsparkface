@@ -1,0 +1,207 @@
+{
+  "dataset_path": "C:\\Users\\Muhd Hayyun\\Desktop\\Apps\\School\\Y2S2\\Hackomania\\data\\processed\\smart_meter_combined.csv",
+  "basic_eda": {
+    "shape": [
+      1586044,
+      5
+    ],
+    "column_types": {
+      "timestamp": "datetime64[us]",
+      "energy_wh": "int64",
+      "meter_id": "str",
+      "source_file": "str",
+      "unit": "str"
+    },
+    "missing_values": {
+      "timestamp": 0,
+      "energy_wh": 0,
+      "meter_id": 0,
+      "source_file": 0,
+      "unit": 0
+    },
+    "duplicate_rows": 0,
+    "descriptive_statistics": "                 count unique                           top  ...                  75%                  max         std\ntimestamp      1586044    NaN                           NaN  ...  2015-12-26 05:00:00  2017-03-15 00:00:00         NaN\nenergy_wh    1586044.0    NaN                           NaN  ...                343.0              65535.0  345.571826\nmeter_id       1586044     24      1625460_FD3_L1_EDMI_12_D  ...                  NaN                  NaN         NaN\nsource_file    1586044     24  1625460_FD3_L1_EDMI_12_D.csv  ...                  NaN                  NaN         NaN\nunit           1586044      1                            Wh  ...                  NaN                  NaN         NaN\n\n[5 rows x 11 columns]",
+    "correlation_path": "C:\\Users\\Muhd Hayyun\\Desktop\\Apps\\School\\Y2S2\\Hackomania\\outputs\\eda\\correlation_matrix.png",
+    "distribution_paths": [
+      "C:\\Users\\Muhd Hayyun\\Desktop\\Apps\\School\\Y2S2\\Hackomania\\outputs\\eda\\distribution_energy_wh.png"
+    ],
+    "time_series_path": "C:\\Users\\Muhd Hayyun\\Desktop\\Apps\\School\\Y2S2\\Hackomania\\outputs\\eda\\time_series.png"
+  },
+  "meter_summary": {
+    "meter_count": 24,
+    "date_range": {
+      "start": "2012-11-14 00:00:00",
+      "end": "2017-03-15 00:00:00"
+    },
+    "per_meter_summary": {
+      "1625530_FD3_L2_EDMI_20_D": {
+        "count": 68007,
+        "mean": 712.9550487449822,
+        "min": 0,
+        "max": 4581,
+        "sum": 48485934
+      },
+      "1623189_FD1_NK_EDMI_10_D": {
+        "count": 68439,
+        "mean": 545.074109791201,
+        "min": 0,
+        "max": 65535,
+        "sum": 37304327
+      },
+      "1625530_FD3_NK_EDMI_21_D": {
+        "count": 69255,
+        "mean": 439.2352032344235,
+        "min": 0,
+        "max": 4005,
+        "sum": 30419234
+      },
+      "1621554_FD4_NK_EDMI_4_D": {
+        "count": 68391,
+        "mean": 435.55741252503987,
+        "min": 0,
+        "max": 2713,
+        "sum": 29788207
+      },
+      "1625529_FD2_L2_EDMI_14_D": {
+        "count": 66087,
+        "mean": 385.5206924205971,
+        "min": 0,
+        "max": 4406,
+        "sum": 25477906
+      },
+      "1625530_FD2_L2_EDMI_18_D": {
+        "count": 66567,
+        "mean": 375.70413267835414,
+        "min": 0,
+        "max": 4336,
+        "sum": 25009497
+      },
+      "1623189_FD1_L2_EDMI_7_D": {
+        "count": 70551,
+        "mean": 340.72948647078,
+        "min": 0,
+        "max": 4409,
+        "sum": 24038806
+      },
+      "1625460_FD3_L1_EDMI_12_D": {
+        "count": 74080,
+        "mean": 287.6658747300216,
+        "min": 0,
+        "max": 3194,
+        "sum": 21310288
+      },
+      "1315367_FD1_L3_EDMI_2_D": {
+        "count": 67047,
+        "mean": 312.7009709606694,
+        "min": 0,
+        "max": 3472,
+        "sum": 20965662
+      },
+      "1625552_FD3_L2_EDMI_22_D": {
+        "count": 67863,
+        "mean": 307.9965813477153,
+        "min": 21,
+        "max": 5621,
+        "sum": 20901572
+      },
+      "1623101_FD4_L1_EDMI_5_D": {
+        "count": 72660,
+        "mean": 275.06271676300577,
+        "min": 0,
+        "max": 3180,
+        "sum": 19986057
+      },
+      "1619722_FD3_NK_EDMI_3_D": {
+        "count": 60137,
+        "mean": 273.14209222275804,
+        "min": 0,
+        "max": 2583,
+        "sum": 16425946
+      },
+      "1625563_FD3_NK_EDMI_23_D": {
+        "count": 67527,
+        "mean": 226.31418543693633,
+        "min": 0,
+        "max": 3911,
+        "sum": 15282318
+      },
+      "1625530_FD3_L1_EDMI_19_D": {
+        "count": 67431,
+        "mean": 223.71148284913468,
+        "min": 0,
+        "max": 3203,
+        "sum": 15085089
+      },
+      "1623123_FD1_L3_EDMI_6_D": {
+        "count": 71773,
+        "mean": 193.54083011717498,
+        "min": 0,
+        "max": 2338,
+        "sum": 13891006
+      },
+      "1625529_FD4_L3_EDMI_16_D": {
+        "count": 47609,
+        "mean": 286.75847003717786,
+        "min": 0,
+        "max": 2755,
+        "sum": 13652284
+      },
+      "1625529_FD4_NK_EDMI_17_D": {
+        "count": 56105,
+        "mean": 240.2286605471883,
+        "min": 0,
+        "max": 2764,
+        "sum": 13478029
+      },
+      "1130211_FD1_L1_EDMI_1_D": {
+        "count": 70695,
+        "mean": 166.09550887615814,
+        "min": 3,
+        "max": 3528,
+        "sum": 11742122
+      },
+      "1623189_FD1_L3_EDMI_8_D": {
+        "count": 66999,
+        "mean": 159.12218092807356,
+        "min": 0,
+        "max": 3167,
+        "sum": 10661027
+      },
+      "1623189_FD1_NK_EDMI_9_D": {
+        "count": 66087,
+        "mean": 157.13355122792683,
+        "min": 0,
+        "max": 4204,
+        "sum": 10384485
+      },
+      "1625574_FD2_L3_EDMI_24_D": {
+        "count": 47945,
+        "mean": 205.9683595786839,
+        "min": 0,
+        "max": 2048,
+        "sum": 9875153
+      },
+      "1625529_FD2_L3_EDMI_15_D": {
+        "count": 66711,
+        "mean": 146.98946200776484,
+        "min": 0,
+        "max": 3297,
+        "sum": 9805814
+      },
+      "1625460_FD3_L2_EDMI_13_D": {
+        "count": 69591,
+        "mean": 134.42453765573134,
+        "min": 7,
+        "max": 2509,
+        "sum": 9354738
+      },
+      "1623189_FD2_NK_EDMI_11_D": {
+        "count": 68487,
+        "mean": 107.34501438229152,
+        "min": 0,
+        "max": 2596,
+        "sum": 7351738
+      }
+    }
+  }
+}

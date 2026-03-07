@@ -20,6 +20,7 @@ class PipelineConfig:
     """Runtime configuration for the end-to-end training pipeline."""
 
     dataset_path: Path = RAW_DATA_DIR / "smart_meter_data.csv"
+    processed_dataset_path: Path = PROCESSED_DATA_DIR / "smart_meter_combined.csv"
     target_column: str = "target"
     timestamp_column: str | None = "timestamp"
     group_column: str | None = None
@@ -38,6 +39,8 @@ class PipelineConfig:
     model_dir: Path = MODELS_DIR
     model_filename: str = "trained_model.joblib"
     eda_sample_size: int = 10000
+    forecast_horizon: int = 1
+    anomaly_contamination: float = 0.01
     model_params: dict[str, dict[str, Any]] = field(
         default_factory=lambda: {
             "lightgbm": {

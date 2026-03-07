@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from typing import Any
 
-from lightgbm import LGBMRegressor
 from sklearn.base import RegressorMixin
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.linear_model import LinearRegression
@@ -14,6 +13,12 @@ from sklearn.pipeline import Pipeline
 def get_model(model_name: str, model_params: dict[str, dict[str, Any]]) -> RegressorMixin:
     """Instantiate a supported regression model by name."""
     if model_name == "lightgbm":
+        try:
+            from lightgbm import LGBMRegressor
+        except ModuleNotFoundError as exc:  # pragma: no cover - depends on environment
+            raise ModuleNotFoundError(
+                "LightGBM is not installed. Install it with `pip install lightgbm` or use another model."
+            ) from exc
         return LGBMRegressor(**model_params.get("lightgbm", {}))
     if model_name == "random_forest":
         return RandomForestRegressor(**model_params.get("random_forest", {}))
