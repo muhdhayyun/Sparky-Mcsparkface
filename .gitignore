@@ -8,4 +8,15 @@ env/
 models/*.joblib
 outputs/*.png
 outputs/*.csv
+outputs/eda/*.json
+outputs/reports/*.csv
+outputs/reports/*.json
+outputs/anomalies/*.csv
+outputs/anomalies/*.json
+outputs/forecasting/*.csv
+outputs/forecasting/*.json
+data/raw/*
+!data/raw/.gitkeep
+data/processed/*
+!data/processed/.gitkeep
 notebooks/.ipynb_checkpoints/

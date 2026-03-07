@@ -5,22 +5,34 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
-import matplotlib.pyplot as plt
+import matplotlib
 import pandas as pd
-import seaborn as sns
+matplotlib.use("Agg")
+import matplotlib.pyplot as plt
+
+try:
+    import seaborn as sns
+except ModuleNotFoundError:  # pragma: no cover - environment-specific fallback
+    sns = None
 
 
-sns.set_theme(style="whitegrid")
+if sns is not None:
+    sns.set_theme(style="whitegrid")
 
 
 def summarize_dataset(df: pd.DataFrame) -> dict[str, Any]:
     """Return a generic summary for any dataframe."""
+    try:
+        descriptive_statistics = df.describe(include="all", datetime_is_numeric=True).transpose()
+    except TypeError:
+        descriptive_statistics = df.describe(include="all").transpose()
+
     return {
         "shape": df.shape,
         "column_types": df.dtypes.astype(str).to_dict(),
         "missing_values": df.isna().sum().sort_values(ascending=False).to_dict(),
         "duplicate_rows": int(df.duplicated().sum()),
-        "descriptive_statistics": df.describe(include="all", datetime_is_numeric=True).transpose(),
+        "descriptive_statistics": descriptive_statistics,
     }
 
 
@@ -40,7 +52,15 @@ def plot_correlation_matrix(df: pd.DataFrame, output_path: str | Path) -> Path |
 
     output_path = Path(output_path)
     fig, ax = plt.subplots(figsize=(10, 8))
-    sns.heatmap(corr, cmap="coolwarm", center=0, ax=ax)
+    if sns is not None:
+        sns.heatmap(corr, cmap="coolwarm", center=0, ax=ax)
+    else:
+        image = ax.imshow(corr, cmap="coolwarm")
+        fig.colorbar(image, ax=ax)
+        ax.set_xticks(range(len(corr.columns)))
+        ax.set_xticklabels(corr.columns, rotation=90)
+        ax.set_yticks(range(len(corr.index)))
+        ax.set_yticklabels(corr.index)
     ax.set_title("Correlation Matrix")
     fig.tight_layout()
     fig.savefig(output_path, dpi=150)
@@ -58,7 +78,10 @@ def plot_distributions(
 
     for column in numeric_columns:
         fig, ax = plt.subplots(figsize=(8, 4))
-        sns.histplot(df[column].dropna(), kde=True, ax=ax)
+        if sns is not None:
+            sns.histplot(df[column].dropna(), kde=True, ax=ax)
+        else:
+            ax.hist(df[column].dropna(), bins=30)
         ax.set_title(f"Distribution: {column}")
         ax.set_xlabel(column)
         output_path = output_dir / f"distribution_{column}.png"
