@@ -94,10 +94,10 @@ const Index = () => {
             <Recommendations selectedDataset={selectedDataset} />
           </div>
           <div className="md:col-span-2">
-            <div>
+            {/* <div>
               <CommunityImpact />
-            </div>
-            <div className="mt-4">
+            </div> */}
+            <div>
               <ApplianceUsageForm selectedDataset={selectedDataset} />
             </div>
           </div>
