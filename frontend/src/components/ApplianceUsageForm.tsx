@@ -10,21 +10,88 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useState } from "react";
+import { useToast } from "@/hooks/use-toast";
 
-const ApplianceUsageForm = () => {
+interface ApplianceUsageFormProps {
+    selectedDataset: string;
+}
+
+const ApplianceUsageForm = ({ selectedDataset }: ApplianceUsageFormProps) => {
     const [formData, setFormData] = useState({
         date: "",
         hours: "",
         applianceName: ""
     });
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const { toast } = useToast();
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        console.log("Form submitted:", formData);
-        // Add your form submission logic here
-
-        // reset the form
-        setFormData({date:"",hours:"",applianceName:""});
+        setIsSubmitting(true);
+        
+        try {
+            // Step 1: Save to backend database
+            const response = await fetch('http://localhost:3001/api/appliances', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    ...formData,
+                    userId: selectedDataset
+                })
+            });
+            
+            if (!response.ok) {
+                throw new Error('Failed to save appliance data');
+            }
+            
+            const data = await response.json();
+            
+            // Step 2: Send to AI service for processing and Pinecone storage
+            try {
+                const aiResponse = await fetch('http://localhost:5001/api/ai/appliance-consumption', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        appliance_name: formData.applianceName,
+                        hours: parseInt(formData.hours),
+                        date: formData.date,
+                        user_id: selectedDataset
+                    })
+                });
+                
+                if (aiResponse.ok) {
+                    const aiData = await aiResponse.json();
+                    console.log('AI processing result:', aiData);
+                }
+            } catch (aiError) {
+                // Don't fail the whole operation if AI service is down
+                console.warn('AI service unavailable:', aiError);
+            }
+            
+            toast({
+                title: "Success!",
+                description: "Appliance usage saved successfully. Recommendations will be updated.",
+            });
+            
+            // Reset the form
+            setFormData({date:"", hours:"", applianceName:""});
+            
+            // Trigger a page refresh event so Recommendations component can reload
+            window.dispatchEvent(new CustomEvent('appliance-added'));
+        } catch (error) {
+            console.error('Error submitting form:', error);
+            toast({
+                title: "Error",
+                description: "Failed to save appliance data. Please try again.",
+                variant: "destructive",
+            });
+        } finally {
+            setIsSubmitting(false);
+        }
     };
 
     return (
@@ -82,8 +149,8 @@ const ApplianceUsageForm = () => {
                 </div>
 
                 {/* Submit Button */}
-                <Button type="submit" className="w-full">
-                    Add Appliance
+                <Button type="submit" className="w-full" disabled={isSubmitting}>
+                    {isSubmitting ? "Saving..." : "Add Appliance"}
                 </Button>
             </form>
         </Card>

@@ -1,169 +1,129 @@
-# Welcome to your Lovable project
+# Hackomania Energy App
 
-## Project info
+This project is a local three-service app for household energy analysis, appliance tracking, and smart recommendations.
 
-**URL**: https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID
+## Architecture
 
-## How can I edit this code?
+- `frontend/` = React + Vite UI
+- `backend/` = Node/Express API and SQLite owner
+- `ai_service/` = Python/Flask recommendations service
+- `data/processed/` = processed household CSV datasets used as the demo user pool
 
-There are several ways of editing your application.
+Current behavior:
 
-**Use Lovable**
+- The `Simple Login` dropdown is a temporary user switcher.
+- Each demo user is mapped to one processed CSV dataset.
+- Appliance usage is stored in SQLite and scoped by the selected user.
+- Smart recommendations use:
+  - selected user appliance usage from the backend
+  - selected dataset energy profile
+  - the full processed dataset pool for baseline and peak-hour analysis
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and start prompting.
+## How The App Works
 
-Changes made via Lovable will be committed automatically to this repo.
+1. Frontend loads available demo users from the AI service.
+2. Selecting a user changes the active dataset context across the page.
+3. The backend serves:
+   - monthly usage for the selected dataset
+   - weekly overview for the selected dataset
+   - appliance usage for the selected user
+   - appliance context summary for the AI service
+4. The AI service:
+   - fetches appliance context from the backend
+   - compares the selected dataset against the dataset pool
+   - calculates peak demand hours from processed CSVs
+   - generates smart recommendations
+5. Appliance usage added in the form is stored only for the currently selected user.
 
-**Use your preferred IDE**
+## Run The Project
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+Use three terminals.
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+### 1. Frontend
 
-Follow these steps:
-
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
-
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
-
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
+```powershell
+cd C:\Users\muhdh\Desktop\Apps\School\Y2S2\Hackomania\frontend
 npm run dev
 ```
 
-**Edit a file directly in GitHub**
+### 2. Backend
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
-
-**Use GitHub Codespaces**
-
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
-
-## What technologies are used for this project?
-
-This project is built with:
-
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
-
-## How can I deploy this project?
-
-Simply open [Lovable](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and click on Share -> Publish.
-
-## Can I connect a custom domain to my Lovable project?
-
-Yes, you can!
-
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
-
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
-# Energy ML Pipeline
-
-Production-ready Python project skeleton for analyzing smart meter energy consumption data. The codebase is modular, dataset-agnostic, and designed so new datasets can be integrated with minimal changes.
-
-## Structure
-
-```text
-project_root/
-├── data/
-│   ├── processed/
-│   └── raw/
-├── models/
-├── notebooks/
-├── outputs/
-├── src/
-│   └── energy_ml_pipeline/
-│       ├── config.py
-│       ├── data_loader.py
-│       ├── eda.py
-│       ├── evaluation.py
-│       ├── feature_engineering.py
-│       ├── inference.py
-│       ├── main.py
-│       ├── preprocessing.py
-│       ├── splitting.py
-│       ├── training.py
-│       └── utils.py
-└── tests/
+```powershell
+cd C:\Users\muhdh\Desktop\Apps\School\Y2S2\Hackomania\backend
+npm start
 ```
 
-## Quick Start
+Runs on `http://localhost:3001`
 
-1. Install dependencies:
+### 3. AI Service
 
-```bash
-pip install -r requirements.txt
-pip install -e .
+```powershell
+cd C:\Users\muhdh\Desktop\Apps\School\Y2S2\Hackomania\ai_service
+python ai_api.py
 ```
 
-2. Update `src/energy_ml_pipeline/config.py` with your dataset path and target column.
+Runs on `http://localhost:5001`
 
-3. Run the pipeline:
+Notes:
 
-```bash
-python -m energy_ml_pipeline.main
-```
+- Pinecone is optional at runtime. If unavailable, the AI service still runs.
+- Tavily is optional. If it fails, appliance lookup falls back.
+- The backend creates `backend/appliances.db` automatically on startup.
 
-## Prepare Multiple Raw Datasets
+## Main User Flow
 
-When you receive multiple smart meter CSV files, normalize them first:
+1. Start all three services.
+2. Open the frontend in the browser.
+3. Use `Simple Login` to choose a demo user.
+4. Check:
+   - monthly usage chart
+   - weekly overview
+   - smart recommendations
+5. Add appliance usage for that selected user.
+6. Switch users and verify appliance usage and recommendations are isolated per user.
 
-```bash
-python -m energy_ml_pipeline.prepare_data
-```
+## Important Endpoints
 
-This reads all `.csv` files in `data/raw/` and writes one merged file to `data/processed/smart_meter_combined.csv` with a standard schema:
+### Backend
 
-- `timestamp`
-- `energy_wh`
-- `meter_id`
-- `source_file`
-- `unit`
+- `GET /api/monthly-usage?dataset=<dataset_id>`
+- `GET /api/weekly-overview?dataset=<dataset_id>`
+- `POST /api/appliances`
+- `GET /api/appliances?user_id=<dataset_id>`
+- `GET /api/context-summary?user_id=<dataset_id>`
 
-To verify that the merged file contains all raw files and matching row counts:
+### AI Service
 
-```bash
-python -m energy_ml_pipeline.verify_prepared_data
-```
+- `GET /health`
+- `GET /api/ai/datasets`
+- `GET /api/ai/recommendations?dataset=<dataset_id>`
+- `POST /api/ai/appliance-consumption`
 
-To run EDA on the merged dataset:
+## Key Files
 
-```bash
-python -m energy_ml_pipeline.run_eda
-```
+- `frontend/src/pages/Index.tsx`
+- `frontend/src/components/UsageChart.tsx`
+- `frontend/src/components/WeeklyOverview.tsx`
+- `frontend/src/components/Recommendations.tsx`
+- `frontend/src/components/ApplianceUsageForm.tsx`
+- `frontend/src/components/ApplianceUsageDashboard.tsx`
+- `backend/server.js`
+- `ai_service/ai_api.py`
+- `ai_service/ai_service.py`
 
-This writes charts and `eda_summary.json` to `outputs/eda/`.
+## Current Constraints
 
-## Post-EDA Workflows
+- The login system is temporary and dataset-backed, not real authentication.
+- Appliance lookup may use fallback estimates if Tavily is unavailable.
+- Recommendation rendering still depends on parsing formatted text from the AI response.
 
-Generate reporting summaries from the combined dataset:
+## Useful Checks
 
-```bash
-python -m energy_ml_pipeline.run_reporting
-```
-
-Detect anomalous readings:
-
-```bash     
-python -m energy_ml_pipeline.run_anomaly_detection
-```
-
-Train a baseline next-interval forecasting model:
-
-```bash
-python -m energy_ml_pipeline.run_forecasting
+```powershell
+curl http://localhost:3001/api/appliances
+curl "http://localhost:3001/api/monthly-usage?dataset=1130211_FD1_L1_EDMI_1_D"
+curl "http://localhost:3001/api/weekly-overview?dataset=1130211_FD1_L1_EDMI_1_D"
+curl http://localhost:5001/health
+curl http://localhost:5001/api/ai/datasets
+curl "http://localhost:5001/api/ai/recommendations?dataset=1130211_FD1_L1_EDMI_1_D"
 ```

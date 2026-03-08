@@ -17,12 +17,22 @@ interface WeeklyData {
   target: number;
 }
 
-const WeeklyOverview = () => {
+interface WeeklyOverviewProps {
+  selectedDataset: string;
+  selectedUserLabel: string;
+}
+
+const WeeklyOverview = ({ selectedDataset, selectedUserLabel }: WeeklyOverviewProps) => {
   const [data, setData] = useState<WeeklyData[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch('http://localhost:3001/api/weekly-overview')
+    const params = new URLSearchParams();
+    if (selectedDataset) {
+      params.set("dataset", selectedDataset);
+    }
+
+    fetch(`http://localhost:3001/api/weekly-overview?${params.toString()}`)
       .then(res => res.json())
       .then(data => {
         setData(data);
@@ -32,12 +42,12 @@ const WeeklyOverview = () => {
         console.error('Failed to fetch weekly overview:', err);
         setLoading(false);
       });
-  }, []);
+  }, [selectedDataset]);
 
   return (
     <Card className="p-5">
       <h2 className="text-lg font-bold text-card-foreground mb-1">Weekly Overview</h2>
-      <p className="text-sm text-muted-foreground mb-4">Daily usage vs. your 16 kWh target</p>
+      <p className="text-sm text-muted-foreground mb-4">Daily usage vs. {selectedUserLabel || "your"} 16 kWh target</p>
       {loading ? (
         <div className="h-[200px] flex items-center justify-center text-muted-foreground">
           Loading...
