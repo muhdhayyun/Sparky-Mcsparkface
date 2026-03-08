@@ -7,8 +7,50 @@ import Recommendations from "@/components/Recommendations";
 import CommunityImpact from "@/components/CommunityImpact";
 import ApplianceUsageForm from "@/components/ApplianceUsageForm";
 import ApplianceUsageDashboard from "@/components/ApplianceUsageDashboard";
+import { Card } from "@/components/ui/card";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { useEffect, useState } from "react";
+
+interface DatasetOption {
+  id: string;
+  filename: string;
+  label: string;
+}
 
 const Index = () => {
+  const [datasets, setDatasets] = useState<DatasetOption[]>([]);
+  const [selectedDataset, setSelectedDataset] = useState("");
+
+  useEffect(() => {
+    const fetchDatasets = async () => {
+      try {
+        const response = await fetch("http://localhost:5001/api/ai/datasets");
+        if (!response.ok) {
+          throw new Error("Failed to load datasets");
+        }
+
+        const data = await response.json();
+        const loadedDatasets = data.datasets ?? [];
+        setDatasets(loadedDatasets);
+
+        if (loadedDatasets.length > 0) {
+          setSelectedDataset(loadedDatasets[0].id);
+        }
+      } catch (error) {
+        console.error("Error loading datasets:", error);
+      }
+    };
+
+    fetchDatasets();
+  }, []);
+
   return (
     <div className="min-h-screen bg-background">
       <div className="max-w-5xl mx-auto px-4 py-6">
@@ -21,22 +63,43 @@ const Index = () => {
           <WeeklyOverview />
         </div>
 
+        <Card className="mt-4 p-4">
+          <div className="space-y-2">
+            <Label htmlFor="dataset-selector">Active Dataset</Label>
+            <Select value={selectedDataset} onValueChange={setSelectedDataset}>
+              <SelectTrigger id="dataset-selector" className="max-w-md">
+                <SelectValue placeholder="Select a dataset" />
+              </SelectTrigger>
+              <SelectContent>
+                {datasets.map((dataset) => (
+                  <SelectItem key={dataset.id} value={dataset.id}>
+                    {dataset.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-muted-foreground">
+              Manually choose which processed household dataset acts as the active user context for smart recommendations.
+            </p>
+          </div>
+        </Card>
+
         <div className="grid md:grid-cols-5 gap-4 mt-4">
           <div className="md:col-span-3">
-            <Recommendations />
+            <Recommendations selectedDataset={selectedDataset} />
           </div>
           <div className="md:col-span-2">
             <div>
               <CommunityImpact />
             </div>
             <div className="mt-4">
-              <ApplianceUsageForm />
+              <ApplianceUsageForm selectedDataset={selectedDataset} />
             </div>
           </div>
         </div>
 
         <div className="max-w-5xl mx-auto mt-4">
-          <ApplianceUsageDashboard />
+          <ApplianceUsageDashboard selectedDataset={selectedDataset} />
         </div>
 
         <footer className="text-center text-xs text-muted-foreground mt-10 pb-6">
