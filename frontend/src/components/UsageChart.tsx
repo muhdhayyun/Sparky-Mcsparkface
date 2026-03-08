@@ -17,12 +17,22 @@ interface MonthlyData {
   userUsage: number;
 }
 
-const UsageChart = () => {
+interface UsageChartProps {
+  selectedDataset: string;
+  selectedUserLabel: string;
+}
+
+const UsageChart = ({ selectedDataset, selectedUserLabel }: UsageChartProps) => {
   const [data, setData] = useState<MonthlyData[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch('http://localhost:3001/api/monthly-usage')
+    const params = new URLSearchParams();
+    if (selectedDataset) {
+      params.set("dataset", selectedDataset);
+    }
+
+    fetch(`http://localhost:3001/api/monthly-usage?${params.toString()}`)
       .then(res => res.json())
       .then(data => {
         setData(data);
@@ -32,7 +42,7 @@ const UsageChart = () => {
         console.error('Failed to fetch monthly usage:', err);
         setLoading(false);
       });
-  }, []);
+  }, [selectedDataset]);
 
   const CustomTooltip = ({ active, payload, label }: any) => {
     if (!active || !payload) return null;
@@ -52,7 +62,7 @@ const UsageChart = () => {
     <Card className="p-5">
       <div className="mb-4">
         <h2 className="text-lg font-bold text-card-foreground">Monthly Usage 2014</h2>
-        <p className="text-sm text-muted-foreground">Average monthly consumption vs. your usage</p>
+        <p className="text-sm text-muted-foreground">Average monthly consumption vs. {selectedUserLabel || "your"} usage</p>
       </div>
       {loading ? (
         <div className="h-[260px] flex items-center justify-center text-muted-foreground">
@@ -82,14 +92,16 @@ const UsageChart = () => {
               stroke="hsl(199, 89%, 38%)"
               strokeWidth={2}
               dot={{ r: 3 }}
+              isAnimationActive={false}
             />
             <Line
               type="monotone"
               dataKey="userUsage"
-              name="Your Usage"
+              name={`${selectedUserLabel || "Your"} Usage`}
               stroke="hsl(25, 95%, 53%)"
               strokeWidth={2}
               dot={{ r: 3 }}
+              animationDuration={250}
             />
           </LineChart>
         </ResponsiveContainer>

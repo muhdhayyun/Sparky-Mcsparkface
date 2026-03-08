@@ -28,6 +28,11 @@ const Index = () => {
   const [datasets, setDatasets] = useState<DatasetOption[]>([]);
   const [selectedDataset, setSelectedDataset] = useState("");
 
+  const selectedDatasetIndex = datasets.findIndex((dataset) => dataset.id === selectedDataset);
+  const selectedUserLabel = selectedDatasetIndex >= 0
+    ? `User ${String(selectedDatasetIndex + 1).padStart(2, "0")}`
+    : "User";
+
   useEffect(() => {
     const fetchDatasets = async () => {
       try {
@@ -59,27 +64,27 @@ const Index = () => {
         <ImpactCards />
 
         <div className="grid md:grid-cols-2 gap-4 mt-4">
-          <UsageChart />
-          <WeeklyOverview />
+          <UsageChart selectedDataset={selectedDataset} selectedUserLabel={selectedUserLabel} />
+          <WeeklyOverview selectedDataset={selectedDataset} selectedUserLabel={selectedUserLabel} />
         </div>
 
         <Card className="mt-4 p-4">
           <div className="space-y-2">
-            <Label htmlFor="dataset-selector">Active Dataset</Label>
+            <Label htmlFor="dataset-selector">Simple Login</Label>
             <Select value={selectedDataset} onValueChange={setSelectedDataset}>
               <SelectTrigger id="dataset-selector" className="max-w-md">
-                <SelectValue placeholder="Select a dataset" />
+                <SelectValue placeholder="Select a user" />
               </SelectTrigger>
               <SelectContent>
-                {datasets.map((dataset) => (
+                {datasets.map((dataset, index) => (
                   <SelectItem key={dataset.id} value={dataset.id}>
-                    {dataset.label}
+                    {`User ${String(index + 1).padStart(2, "0")} (${dataset.label})`}
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
             <p className="text-xs text-muted-foreground">
-              Manually choose which processed household dataset acts as the active user context for smart recommendations.
+              Switch between demo users. Each user is currently mapped to one electricity dataset.
             </p>
           </div>
         </Card>

@@ -52,6 +52,14 @@ app.use(express.json());
 const DATA_DIR = path.join(__dirname, '../data/processed');
 const USER_FILE = '1623189_FD1_NK_EDMI_10_D.csv';
 
+function resolveDatasetFile(datasetId) {
+  const normalized = typeof datasetId === 'string' && datasetId.trim()
+    ? datasetId.trim().replace(/\.csv$/i, '')
+    : USER_FILE.replace(/\.csv$/i, '');
+  const candidate = path.join(DATA_DIR, `${normalized}.csv`);
+  return fs.existsSync(candidate) ? candidate : path.join(DATA_DIR, USER_FILE);
+}
+
 // Helper: Parse DD/MM/YYYY HH:mm:ss timestamp
 function parseTimestamp(timestampStr) {
   const [datePart, timePart] = timestampStr.trim().split(' ');
@@ -96,14 +104,20 @@ async function readCsvFile(filePath) {
 // Endpoint 1: GET /api/monthly-usage
 app.get('/api/monthly-usage', async (req, res) => {
   try {
+    const selectedDatasetPath = resolveDatasetFile(req.query.dataset);
+    const selectedDatasetFile = path.basename(selectedDatasetPath);
     const files = fs.readdirSync(DATA_DIR).filter((f) => f.endsWith('.csv'));
 
     const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
     const allFilesMonthlyData = {};
     const userMonthlyData = {};
+    const baselineMonthlyTotals = {};
+    const baselineMonthlyCounts = {};
 
     for (let i = 0; i < 12; i++) {
       userMonthlyData[i] = 0;
+      baselineMonthlyTotals[i] = 0;
+      baselineMonthlyCounts[i] = 0;
     }
 
     for (const file of files) {
@@ -125,7 +139,12 @@ app.get('/api/monthly-usage', async (req, res) => {
 
         allFilesMonthlyData[file] = monthlyTotals;
 
-        if (file === USER_FILE) {
+        for (let i = 0; i < 12; i++) {
+          baselineMonthlyTotals[i] += monthlyTotals[i];
+          baselineMonthlyCounts[i] += 1;
+        }
+
+        if (file === selectedDatasetFile) {
           for (let i = 0; i < 12; i++) {
             userMonthlyData[i] = monthlyTotals[i];
           }
@@ -137,15 +156,9 @@ app.get('/api/monthly-usage', async (req, res) => {
 
     const result = [];
     for (let month = 0; month < 12; month++) {
-      let sum = 0;
-      let count = 0;
-
-      Object.values(allFilesMonthlyData).forEach((monthlyTotals) => {
-        sum += monthlyTotals[month];
-        count++;
-      });
-
-      const allUsersAvg = count > 0 ? (sum / count) / 1000 : 0;
+      const allUsersAvg = baselineMonthlyCounts[month] > 0
+        ? (baselineMonthlyTotals[month] / baselineMonthlyCounts[month]) / 1000
+        : 0;
       const userUsage = userMonthlyData[month] / 1000;
 
       result.push({
@@ -165,7 +178,7 @@ app.get('/api/monthly-usage', async (req, res) => {
 // Endpoint 2: GET /api/weekly-overview
 app.get('/api/weekly-overview', async (req, res) => {
   try {
-    const filePath = path.join(DATA_DIR, USER_FILE);
+    const filePath = resolveDatasetFile(req.query.dataset);
     const rows = await readCsvFile(filePath);
 
     const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
