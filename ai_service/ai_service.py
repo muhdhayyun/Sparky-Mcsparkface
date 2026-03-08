@@ -3,11 +3,10 @@ AI Service for Appliance Energy Analysis and Recommendations
 Uses Pinecone for vector storage and RAG-based recommendations
 """
 import os
-import sqlite3
 import requests
 import pandas as pd
 from datetime import datetime
-from typing import List, Dict, Any, Tuple
+from typing import List, Dict, Any, Tuple, Optional
 from pathlib import Path
 from collections import defaultdict
 from dotenv import load_dotenv
@@ -19,24 +18,31 @@ load_dotenv()
 
 # Initialize clients
 openai_client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
-pc = Pinecone(api_key=os.getenv("PINECONE_API_KEY"))
+PINECONE_API_KEY = os.getenv("PINECONE_API_KEY")
+pc = Pinecone(api_key=PINECONE_API_KEY) if PINECONE_API_KEY else None
 
 # Configuration
 INDEX_NAME = "appliance-energy"
 EMBEDDING_MODEL = "text-embedding-3-small"
 CHAT_MODEL = "gpt-4o-mini"
-DB_PATH = "../backend/appliances.db"
 TAVILY_API_KEY = os.getenv("TAVILY_API_KEY")  # Optional: for web search
 PROCESSED_DATA_DIR = Path("../data/processed")
+BACKEND_BASE_URL = os.getenv("BACKEND_BASE_URL", "http://localhost:3001")
 
 class ApplianceAIService:
     """AI service for appliance energy analysis and recommendations"""
     
     def __init__(self):
+        self.index = None
+        self.pinecone_available = False
         self.setup_pinecone()
         
     def setup_pinecone(self):
         """Initialize Pinecone index"""
+        if not pc:
+            print("Pinecone API key not configured. Running without Pinecone.")
+            return
+
         try:
             # Check if index exists
             existing_indexes = pc.list_indexes().names()
@@ -57,9 +63,11 @@ class ApplianceAIService:
                 print(f"✓ Using existing index: {INDEX_NAME}")
             
             self.index = pc.Index(INDEX_NAME)
+            self.pinecone_available = True
         except Exception as e:
-            print(f"Error setting up Pinecone: {e}")
-            raise
+            self.index = None
+            self.pinecone_available = False
+            print(f"Pinecone unavailable, continuing without vector storage: {e}")
     
     def get_embedding(self, text: str) -> List[float]:
         """Generate embedding using OpenAI"""
@@ -217,6 +225,10 @@ Base your answer on typical residential appliances."""
     
     def store_appliance_knowledge(self, appliance_data: Dict[str, Any]):
         """Store appliance consumption data in Pinecone"""
+        if not self.pinecone_available or not self.index:
+            print(f"Skipping Pinecone storage for {appliance_data['appliance']} (Pinecone unavailable)")
+            return
+
         try:
             # Create rich text for embedding
             text = f"""
@@ -241,29 +253,176 @@ Base your answer on typical residential appliances."""
         except Exception as e:
             print(f"Error storing appliance knowledge: {e}")
     
-    def get_user_appliances(self) -> List[Dict[str, Any]]:
-        """Fetch appliances from SQLite database"""
+    def get_backend_appliance_context(self, user_id: Optional[str] = None) -> Dict[str, Any]:
+        """Fetch appliance context from the backend API."""
         try:
-            conn = sqlite3.connect(DB_PATH)
-            conn.row_factory = sqlite3.Row
-            cursor = conn.cursor()
-            
-            cursor.execute("SELECT * FROM appliance_usage ORDER BY date DESC")
-            rows = cursor.fetchall()
-            
-            appliances = [dict(row) for row in rows]
-            conn.close()
-            
-            return appliances
+            params = {}
+            if user_id:
+                params["user_id"] = user_id
+
+            response = requests.get(f"{BACKEND_BASE_URL}/api/context-summary", params=params, timeout=10)
+            response.raise_for_status()
+            payload = response.json()
+
+            return {
+                "user_id": payload.get("user_id", user_id),
+                "appliances": payload.get("appliances", []),
+                "summary": payload.get("summary", {})
+            }
         except Exception as e:
-            print(f"Error fetching appliances from database: {e}")
-            return []
+            print(f"Error fetching appliance context from backend: {e}")
+            return {
+                "appliances": [],
+                "summary": {}
+            }
+
+    def get_user_appliances(self, user_id: Optional[str] = None) -> List[Dict[str, Any]]:
+        """Fetch appliance records from the backend API."""
+        return self.get_backend_appliance_context(user_id).get("appliances", [])
+
+    def build_default_shared_reminders(self) -> List[str]:
+        """Reminders that should always apply to every user."""
+        return [
+            "90. **Turn Off Fans When Not Needed**: Switch off fans when the room is empty or once ventilation is no longer needed to avoid waste from long idle runtime.",
+            "91. **Shut Down Aircon When Spaces Are Empty**: If nobody is in the room, turn off the aircon or raise the setpoint before leaving to prevent unnecessary cooling demand.",
+            "92. **Power Down Non-Essential Appliances**: Turn off non-important electrical appliances and standby devices when not in use, especially during the evening peak window."
+        ]
+
+    def list_available_datasets(self) -> List[Dict[str, str]]:
+        """List processed CSV datasets available for manual selection."""
+        datasets = []
+        for csv_file in sorted(PROCESSED_DATA_DIR.glob("*.csv")):
+            datasets.append({
+                "id": csv_file.stem,
+                "filename": csv_file.name,
+                "label": csv_file.stem
+            })
+        return datasets
+
+    def resolve_dataset_file(self, dataset_id: Optional[str]) -> Optional[Path]:
+        """Resolve a dataset id or filename to a processed CSV path."""
+        if not dataset_id:
+            return None
+
+        normalized = dataset_id.replace(".csv", "")
+        candidate = PROCESSED_DATA_DIR / f"{normalized}.csv"
+        if candidate.exists():
+            return candidate
+        return None
+
+    def calculate_dataset_comparison(self, dataset_id: Optional[str]) -> Dict[str, Any]:
+        """
+        Compare one selected dataset against the remaining dataset pool.
+        Returns user-vs-baseline summary for recommendations.
+        """
+        selected_file = self.resolve_dataset_file(dataset_id)
+        available_files = sorted(PROCESSED_DATA_DIR.glob("*.csv"))
+
+        if not selected_file:
+            return {
+                "selected_dataset": None,
+                "selected_found": False,
+                "baseline_dataset_count": max(len(available_files) - 1, 0),
+                "summary": "No dataset selected. Recommendations are using appliance context and shared peak-hour analysis."
+            }
+
+        baseline_files = [csv_file for csv_file in available_files if csv_file != selected_file]
+
+        def load_dataset_metrics(csv_file: Path) -> Dict[str, Any]:
+            df = pd.read_csv(csv_file)
+
+            if len(df) == 0:
+                return {
+                    "avg_daily_kwh": 0.0,
+                    "peak_hour": None,
+                    "peak_hour_kwh": 0.0,
+                }
+
+            timestamp_col = df.columns[0]
+            energy_col = df.columns[1]
+
+            df["parsed_date"] = pd.to_datetime(df[timestamp_col], format='%d/%m/%Y %H:%M:%S')
+            df["date_only"] = df["parsed_date"].dt.date
+            df["hour"] = df["parsed_date"].dt.hour
+            df["energy_wh"] = pd.to_numeric(df[energy_col], errors='coerce').fillna(0)
+
+            daily_totals = df.groupby("date_only")["energy_wh"].sum()
+            hourly_totals = df.groupby("hour")["energy_wh"].sum()
+
+            peak_hour = int(hourly_totals.idxmax()) if not hourly_totals.empty else None
+            peak_hour_kwh = float(hourly_totals.max() / 1000) if not hourly_totals.empty else 0.0
+
+            return {
+                "avg_daily_kwh": round(float(daily_totals.mean() / 1000), 2) if not daily_totals.empty else 0.0,
+                "peak_hour": peak_hour,
+                "peak_hour_kwh": round(peak_hour_kwh, 2),
+            }
+
+        try:
+            selected_metrics = load_dataset_metrics(selected_file)
+            baseline_metrics = [load_dataset_metrics(csv_file) for csv_file in baseline_files]
+
+            baseline_avg_daily = 0.0
+            baseline_peak_hour_kwh = 0.0
+            if baseline_metrics:
+                baseline_avg_daily = round(
+                    sum(item["avg_daily_kwh"] for item in baseline_metrics) / len(baseline_metrics),
+                    2
+                )
+                baseline_peak_hour_kwh = round(
+                    sum(item["peak_hour_kwh"] for item in baseline_metrics) / len(baseline_metrics),
+                    2
+                )
+
+            delta_daily_kwh = round(selected_metrics["avg_daily_kwh"] - baseline_avg_daily, 2)
+            comparison_direction = "above" if delta_daily_kwh >= 0 else "below"
+            selected_peak_hour = selected_metrics["peak_hour"]
+            selected_peak_window = (
+                f"{selected_peak_hour:02d}:00-{selected_peak_hour + 1:02d}:00"
+                if selected_peak_hour is not None else "Unknown"
+            )
+
+            return {
+                "selected_dataset": selected_file.stem,
+                "selected_found": True,
+                "baseline_dataset_count": len(baseline_files),
+                "selected_metrics": selected_metrics,
+                "baseline_metrics": {
+                    "avg_daily_kwh": baseline_avg_daily,
+                    "peak_hour_kwh": baseline_peak_hour_kwh,
+                },
+                "summary": (
+                    f"Selected dataset {selected_file.stem} averages {selected_metrics['avg_daily_kwh']} kWh/day, "
+                    f"which is {abs(delta_daily_kwh)} kWh/day {comparison_direction} the {len(baseline_files)}-dataset baseline. "
+                    f"Its strongest usage window is {selected_peak_window}."
+                )
+            }
+        except Exception as e:
+            return {
+                "selected_dataset": selected_file.stem,
+                "selected_found": False,
+                "baseline_dataset_count": len(baseline_files),
+                "summary": f"Dataset comparison unavailable: {str(e)}"
+            }
     
     def calculate_peak_grid_hours(self) -> Tuple[List[int], Dict[str, Any]]:
         """
         Calculate actual peak grid hours from household CSV data
         Returns peak hours and usage statistics
         """
+        default_peak_hours = [17, 18, 19, 20]
+
+        def build_default_peak_stats(reason: str) -> Dict[str, Any]:
+            return {
+                "method": "default",
+                "reason": reason,
+                "peak_hours": default_peak_hours,
+                "peak_hours_formatted": [f"{h:02d}:00-{h+1:02d}:00" for h in default_peak_hours],
+                "households_analyzed": 0,
+                "hourly_averages_kwh": {},
+                "top_5_hours": []
+            }
+
         try:
             print("Analyzing household data to determine peak grid hours...")
             
@@ -272,7 +431,7 @@ Base your answer on typical residential appliances."""
             
             if not csv_files:
                 print("Warning: No CSV files found. Using default peak hours.")
-                return ([17, 18, 19, 20], {"method": "default", "reason": "No CSV data available"})
+                return (default_peak_hours, build_default_peak_stats("No CSV data available"))
             
             # Aggregate usage by hour across all households
             hourly_usage = defaultdict(list)
@@ -305,7 +464,7 @@ Base your answer on typical residential appliances."""
             
             if not hourly_usage:
                 print("Warning: No valid data processed. Using default peak hours.")
-                return ([17, 18, 19, 20], {"method": "default", "reason": "No valid data processed"})
+                return (default_peak_hours, build_default_peak_stats("No valid data processed"))
             
             # Calculate average usage per hour across all households
             hourly_averages = {}
@@ -337,9 +496,14 @@ Base your answer on typical residential appliances."""
         except Exception as e:
             print(f"Error calculating peak hours: {e}")
             print("Falling back to default peak hours (5-9 PM)")
-            return ([17, 18, 19, 20], {"method": "default", "reason": f"Error: {str(e)}"})
+            return (default_peak_hours, build_default_peak_stats(f"Error: {str(e)}"))
     
-    def generate_personalized_recommendations(self, user_appliances: List[Dict[str, Any]]) -> str:
+    def generate_personalized_recommendations(
+        self,
+        user_appliances: List[Dict[str, Any]],
+        appliance_context_summary: Optional[Dict[str, Any]] = None,
+        dataset_context: Optional[Dict[str, Any]] = None
+    ) -> str:
         """
         Generate personalized energy-saving recommendations using RAG
         Considers user's appliance usage and actual grid load patterns from data
@@ -352,6 +516,9 @@ Base your answer on typical residential appliances."""
             # Build context from user appliances
             appliance_summary = []
             total_energy = 0
+            appliance_context_summary = appliance_context_summary or {}
+            dataset_context = dataset_context or {}
+            shared_reminders = self.build_default_shared_reminders()
             
             # Static appliance database for fallback
             APPLIANCE_DATABASE = {
@@ -386,25 +553,41 @@ Base your answer on typical residential appliances."""
                     "hours": app['hours'],
                     "estimated_kwh": round(estimated_kwh, 2)
                 })
+
+            context_summary_text = "No appliance context summary available."
+            if appliance_context_summary:
+                context_summary_text = (
+                    f"Total tracked entries: {appliance_context_summary.get('total_appliances', 0)}\n"
+                    f"Unique appliances: {appliance_context_summary.get('unique_appliances', 0)}\n"
+                    f"Most common appliance: {appliance_context_summary.get('most_common_appliance') or 'Unknown'}\n"
+                    f"Most common usage window: {appliance_context_summary.get('most_common_usage_window') or 'Unknown'}\n"
+                    f"High consumption appliances: {', '.join(appliance_context_summary.get('high_consumption_appliances', [])) or 'None'}"
+                )
+
+            dataset_summary_text = dataset_context.get(
+                "summary",
+                "No dataset comparison selected. Use overall household patterns only."
+            )
             
             try:
                 # Try to use OpenAI
-                # Query Pinecone for relevant energy-saving tips
-                query_text = f"Energy saving tips for appliances: {', '.join([a['name'] for a in appliance_summary])}"
-                query_embedding = self.get_embedding(query_text)
-                
-                # Search similar knowledge
-                search_results = self.index.query(
-                    vector=query_embedding,
-                    top_k=5,
-                    include_metadata=True
-                )
-                
                 # Build RAG context
                 rag_context = "Relevant appliance energy data:\n"
-                for match in search_results.matches:
-                    if match.metadata:
-                        rag_context += f"- {match.metadata.get('appliance', 'Unknown')}: {match.metadata.get('kwh_per_hour', 'N/A')} kWh/hour\n"
+                if self.pinecone_available and self.index:
+                    query_text = f"Energy saving tips for appliances: {', '.join([a['name'] for a in appliance_summary])}"
+                    query_embedding = self.get_embedding(query_text)
+
+                    search_results = self.index.query(
+                        vector=query_embedding,
+                        top_k=5,
+                        include_metadata=True
+                    )
+
+                    for match in search_results.matches:
+                        if match.metadata:
+                            rag_context += f"- {match.metadata.get('appliance', 'Unknown')}: {match.metadata.get('kwh_per_hour', 'N/A')} kWh/hour\n"
+                else:
+                    rag_context += "- Pinecone context unavailable; using appliance usage and energy-pattern analysis only.\n"
                 
                 # Generate recommendations using GPT
                 prompt = f"""You are an energy efficiency expert providing personalized recommendations to reduce electricity usage and avoid grid strain.
@@ -413,6 +596,12 @@ User's Appliance Usage (recent):
 {appliance_summary}
 
 Total estimated energy: {round(total_energy, 2)} kWh
+
+Backend Appliance Context Summary:
+{context_summary_text}
+
+Selected Dataset vs Baseline:
+{dataset_summary_text}
 
 {rag_context}
 
@@ -443,6 +632,7 @@ Keep responses concise and practical. When suggesting time shifts, explicitly me
                 recommendations = f"**Peak Grid Hours (Based on Real Data):** {peak_hours_str}\n"
                 recommendations += f"*Analyzed {peak_stats['households_analyzed']} households to determine actual peak demand times*\n\n"
                 recommendations += response.choices[0].message.content
+                recommendations += "\n\n" + "\n\n".join(shared_reminders)
                 
                 return recommendations
             
@@ -457,6 +647,7 @@ Keep responses concise and practical. When suggesting time shifts, explicitly me
                 
                 recs = []
                 appliance_names = [a['name'].lower() for a in appliance_summary]
+                high_consumption = appliance_context_summary.get('high_consumption_appliances', [])
                 
                 # Generate appliance-specific recommendations
                 if any('air conditioner' in name or 'ac' in name or 'cooling' in name for name in appliance_names):
@@ -468,16 +659,25 @@ Keep responses concise and practical. When suggesting time shifts, explicitly me
                 
                 if any('oven' in name or 'stove' in name or 'dishwasher' in name for name in appliance_names):
                     recs.append(f"4. **Cook During Off-Peak**: Use oven and dishwasher before {peak_hours[0]}:00 or after {peak_hours[-1]+1}:00. Consider meal prep to reduce cooking frequency.")
-                
+
                 # Generic recommendations
                 if len(recs) < 5:
                     recs.append(f"5. **Unplug Phantom Loads**: Devices on standby can account for 10% of your bill. Unplug chargers and electronics when not in use. Estimated savings: $3-5/week.")
-                
+
                 if len(appliance_summary) > 3:
                     recs.append(f"6. **Monitor Your Usage**: You're tracking {len(appliance_summary)} appliances totaling {round(total_energy, 1)} kWh. Focus on high-energy items first for maximum impact.")
+
+                if high_consumption and len(recs) < 5:
+                    highlighted = ", ".join(high_consumption[:3])
+                    recs.append(f"7. **Prioritize Heavy Users**: Your highest tracked appliance hours come from {highlighted}. Shifting or reducing these first should have the biggest impact.")
+
+                if dataset_context.get("selected_found") and len(recs) < 5:
+                    recs.append(f"8. **Benchmark Against Similar Homes**: {dataset_summary_text}")
+
+                recs.extend(shared_reminders)
                 
                 # Take top 5
-                recommendations += "\n\n".join(recs[:5])
+                recommendations += "\n\n".join(recs[:8])
                 
                 return recommendations
                 
@@ -531,10 +731,14 @@ def main():
     
     # Test: Get user appliances and generate recommendations
     print("\n2. Generating personalized recommendations...")
-    user_appliances = service.get_user_appliances()
-    
+    context = service.get_backend_appliance_context()
+    user_appliances = context.get("appliances", [])
+
     if user_appliances:
-        recommendations = service.generate_personalized_recommendations(user_appliances)
+        recommendations = service.generate_personalized_recommendations(
+            user_appliances,
+            context.get("summary")
+        )
         print("\n" + "="*80)
         print("PERSONALIZED RECOMMENDATIONS:")
         print("="*80)

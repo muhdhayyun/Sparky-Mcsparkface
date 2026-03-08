@@ -18,12 +18,16 @@ interface AIRecommendation {
   based_on?: any[];
 }
 
+interface RecommendationsProps {
+  selectedDataset: string;
+}
+
 interface ParsedRecommendationItem {
   title: string;
   description: string;
 }
 
-const Recommendations = () => {
+const Recommendations = ({ selectedDataset }: RecommendationsProps) => {
   const [recommendations, setRecommendations] = useState<AIRecommendation | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -33,7 +37,12 @@ const Recommendations = () => {
     setLoading(true);
     setError(null);
     try {
-      const response = await fetch('http://localhost:5001/api/ai/recommendations');
+      const params = new URLSearchParams();
+      if (selectedDataset) {
+        params.set("dataset", selectedDataset);
+      }
+
+      const response = await fetch(`http://localhost:5001/api/ai/recommendations?${params.toString()}`);
       
       if (!response.ok) {
         throw new Error(`Failed to fetch recommendations: ${response.statusText}`);
@@ -63,7 +72,7 @@ const Recommendations = () => {
     return () => {
       window.removeEventListener('appliance-added', handleApplianceAdded);
     };
-  }, []);
+  }, [selectedDataset]);
 
   const toggle = (index: number) => {
     setCompleted((prev) => {

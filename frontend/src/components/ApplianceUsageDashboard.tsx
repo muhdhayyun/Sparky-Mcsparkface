@@ -9,13 +9,18 @@ import { Button } from "@/components/ui/button";
 
 interface ApplianceData {
     id: number;
+    user_id?: string;
     date: string;
     hours: number;
     appliance_name: string;
     created_at?: string;
 }
 
-const ApplianceUsageDashboard = () => {
+interface ApplianceUsageDashboardProps {
+    selectedDataset: string;
+}
+
+const ApplianceUsageDashboard = ({ selectedDataset }: ApplianceUsageDashboardProps) => {
     const [startDate, setStartDate] = useState("");
     const [endDate, setEndDate] = useState("");
     const [applianceData, setApplianceData] = useState<ApplianceData[]>([]);
@@ -26,7 +31,12 @@ const ApplianceUsageDashboard = () => {
         setLoading(true);
         setError(null);
         try {
-            const response = await fetch('http://localhost:3001/api/appliances');
+            const params = new URLSearchParams();
+            if (selectedDataset) {
+                params.set("user_id", selectedDataset);
+            }
+
+            const response = await fetch(`http://localhost:3001/api/appliances?${params.toString()}`);
             
             if (!response.ok) {
                 throw new Error('Failed to fetch appliance data');
@@ -46,7 +56,6 @@ const ApplianceUsageDashboard = () => {
     useEffect(() => {
         fetchApplianceData();
         
-        // Listen for appliance-added events to refresh data
         const handleApplianceAdded = () => {
             fetchApplianceData();
         };
@@ -56,9 +65,8 @@ const ApplianceUsageDashboard = () => {
         return () => {
             window.removeEventListener('appliance-added', handleApplianceAdded);
         };
-    }, []);
+    }, [selectedDataset]);
 
-    // Filter data based on selected date range
     const filteredData = useMemo(() => {
         let data = applianceData.map(item => ({
             date: item.date,
@@ -118,7 +126,6 @@ const ApplianceUsageDashboard = () => {
                     How much your appliances have used
                 </p>
                 
-                {/* Date Filter Section */}
                 <div className="grid grid-cols-2 gap-3 mb-4">
                     <div className="space-y-1">
                         <Label htmlFor="start-date" className="text-xs">From Date</Label>
@@ -151,7 +158,7 @@ const ApplianceUsageDashboard = () => {
                     </p>
                     <p className="text-xs text-muted-foreground">
                         {applianceData.length === 0
-                            ? "Add your first appliance above to see usage data"
+                            ? "Add your first appliance for this selected dataset to see usage data"
                             : "Try adjusting your date filters"
                         }
                     </p>
@@ -169,10 +176,9 @@ const ApplianceUsageDashboard = () => {
                 </Button>
             </div>
             <p className="text-sm text-muted-foreground mb-4">
-                Tracking {applianceData.length} appliance{applianceData.length !== 1 ? 's' : ''} • Showing {filteredData.length} record{filteredData.length !== 1 ? 's' : ''}
+                Tracking {applianceData.length} appliance{applianceData.length !== 1 ? 's' : ''} for {selectedDataset || "shared-demo-user"} • Showing {filteredData.length} record{filteredData.length !== 1 ? 's' : ''}
             </p>
 
-            {/* Date Filter Section */}
             <div className="grid grid-cols-2 gap-3 mb-4">
                 <div className="space-y-1">
                     <Label htmlFor="start-date" className="text-xs">From Date</Label>
@@ -199,17 +205,17 @@ const ApplianceUsageDashboard = () => {
             <ResponsiveContainer width="100%" height={200}>
                 <BarChart data={filteredData} margin={{ top: 5, right: 5, left: -15, bottom: 0 }}>
                     <XAxis dataKey="applianceName" tick={{ fontSize: 12, fill: "hsl(210, 15%, 45%)" }} />
-                              <YAxis tick={{ fontSize: 10, fill: "hsl(210, 15%, 45%)" }} unit=" hrs" />
-                              <Tooltip
-                                contentStyle={{
-                                  background: "hsl(0, 0%, 100%)",
-                                  border: "1px solid hsl(200, 20%, 88%)",
-                                  borderRadius: "8px",
-                                  fontSize: 12,
-                                }}
-                              />
-                              <ReferenceLine y={16} stroke="hsl(168, 60%, 42%)" strokeDasharray="4 4" label={{ value: "Target", position: "right", fontSize: 10, fill: "hsl(168, 60%, 42%)" }} />
-                              <Bar dataKey="hours" radius={[6, 6, 0, 0]} fill="hsl(199, 89%, 38%)" />
+                    <YAxis tick={{ fontSize: 10, fill: "hsl(210, 15%, 45%)" }} unit=" hrs" />
+                    <Tooltip
+                        contentStyle={{
+                            background: "hsl(0, 0%, 100%)",
+                            border: "1px solid hsl(200, 20%, 88%)",
+                            borderRadius: "8px",
+                            fontSize: 12,
+                        }}
+                    />
+                    <ReferenceLine y={16} stroke="hsl(168, 60%, 42%)" strokeDasharray="4 4" label={{ value: "Target", position: "right", fontSize: 10, fill: "hsl(168, 60%, 42%)" }} />
+                    <Bar dataKey="hours" radius={[6, 6, 0, 0]} fill="hsl(199, 89%, 38%)" />
                 </BarChart>
             </ResponsiveContainer>
         </Card>

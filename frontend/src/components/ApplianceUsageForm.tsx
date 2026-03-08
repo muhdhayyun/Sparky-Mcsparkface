@@ -12,7 +12,11 @@ import {
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 
-const ApplianceUsageForm = () => {
+interface ApplianceUsageFormProps {
+    selectedDataset: string;
+}
+
+const ApplianceUsageForm = ({ selectedDataset }: ApplianceUsageFormProps) => {
     const [formData, setFormData] = useState({
         date: "",
         hours: "",
@@ -32,7 +36,10 @@ const ApplianceUsageForm = () => {
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify(formData)
+                body: JSON.stringify({
+                    ...formData,
+                    userId: selectedDataset
+                })
             });
             
             if (!response.ok) {
@@ -51,7 +58,8 @@ const ApplianceUsageForm = () => {
                     body: JSON.stringify({
                         appliance_name: formData.applianceName,
                         hours: parseInt(formData.hours),
-                        date: formData.date
+                        date: formData.date,
+                        user_id: selectedDataset
                     })
                 });
                 

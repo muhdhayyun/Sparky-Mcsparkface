@@ -35,11 +35,13 @@ def get_appliance_consumption():
         appliance_name = data.get('appliance_name')
         hours = data.get('hours', 1)
         date = data.get('date')
+        user_id = data.get('user_id')
         
         if not appliance_name:
             return jsonify({"error": "Missing appliance_name"}), 400
         
         result = ai_service.process_new_appliance(appliance_name, hours, date)
+        result["user_id"] = user_id
         return jsonify(result)
     except Exception as e:
         return jsonify({"error": str(e)}), 500
@@ -52,22 +54,36 @@ def get_recommendations():
     Returns AI-generated recommendations based on user's appliance usage
     """
     try:
-        # Get user appliances from database
-        user_appliances = ai_service.get_user_appliances()
-        
-        if not user_appliances:
-            return jsonify({
-                "recommendations": "No appliance data found. Start tracking your appliances to get personalized recommendations!",
-                "appliance_count": 0
-            })
+        dataset_id = request.args.get('dataset')
+
+        # Get user appliances from backend API
+        appliance_context = ai_service.get_backend_appliance_context(dataset_id)
+        user_appliances = appliance_context.get('appliances', [])
         
         # Generate recommendations
-        recommendations = ai_service.generate_personalized_recommendations(user_appliances)
+        recommendations = ai_service.generate_personalized_recommendations(
+            user_appliances,
+            appliance_context.get('summary'),
+            ai_service.calculate_dataset_comparison(dataset_id)
+        )
         
         return jsonify({
             "recommendations": recommendations,
             "appliance_count": len(user_appliances),
-            "based_on": user_appliances[:5]  # Show first 5 for context
+            "based_on": user_appliances[:5],  # Show first 5 for context
+            "context_summary": appliance_context.get('summary', {}),
+            "dataset": dataset_id,
+            "user_id": appliance_context.get('user_id', dataset_id)
+        })
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/api/ai/datasets', methods=['GET'])
+def list_datasets():
+    """List available processed datasets for manual selection."""
+    try:
+        return jsonify({
+            "datasets": ai_service.list_available_datasets()
         })
     except Exception as e:
         return jsonify({"error": str(e)}), 500
