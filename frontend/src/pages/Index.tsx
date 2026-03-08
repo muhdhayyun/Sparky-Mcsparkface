@@ -13,8 +13,8 @@ const Index = () => {
     <div className="min-h-screen bg-background">
       <div className="max-w-5xl mx-auto px-4 py-6">
         <HeroBanner />
-        <PeakAlert />
-        <ImpactCards />
+        {/* <PeakAlert />
+        <ImpactCards /> */}
 
         <div className="grid md:grid-cols-2 gap-4 mt-4">
           <UsageChart />

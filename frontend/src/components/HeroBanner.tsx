@@ -23,10 +23,10 @@ const HeroBanner = () => {
           <p className="text-primary-foreground/80 text-sm md:text-base max-w-lg">
             Understand your usage, shift to off-peak, save money — and help stabilise the grid.
           </p>
-          <div className="flex items-center gap-1 mt-3 text-off-peak font-semibold text-sm">
+          {/* <div className="flex items-center gap-1 mt-3 text-off-peak font-semibold text-sm">
             <TrendingDown className="h-4 w-4" />
             You're using 18% less during peak than last month!
-          </div>
+          </div> */}
         </div>
       </div>
     </div>
